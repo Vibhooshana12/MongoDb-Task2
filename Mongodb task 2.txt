@@ -1,0 +1,365 @@
+Mongodb - task 2
+Design database for Zen class programme
+users
+codekata
+attendance
+topics
+tasks
+company_drives
+mentors
+
+1.Find all the topics and tasks which are thought in the month of October
+2.Find all the company drives which appeared between 15 oct-2020 and 31-oct-2020
+3.Find all the company drives and students who are appeared for the placement.
+4.Find the number of problems solved by the user in codekata
+5.Find all the mentors with who has the mentee's count more than 5
+6.Find the number of users who are absent and task is not submitted  between 15 oct-2020 and 31-oct-2020
+
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+test> show dbs
+GUVI        40.00 KiB
+Zen_Class  320.00 KiB
+admin       40.00 KiB
+config     108.00 KiB
+local      216.00 KiB
+test> use Zen_Class
+switched to db Zen_Class
+Please enter a MongoDB connection string (Default: mongodb://localhost/)
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+1. Find all the topics and tasks which are thought in the month of October
+
+Zen_Class> db.Topics.aggregate([
+... {
+... $lookup:{
+... from:"Tasks",
+... localField:"task_id",
+... foreignField:"task_id",
+... as:"taskinfo"}},
+... {$unwind:"$taskinfo"
+... },
+... {
+... $project:{
+... _id:0,
+... topic:1,
+... topic_date:1,
+... task_name:"$taskinfo.task_name",
+... task_due_date:"$taskinfo.due_date"}},
+... {$match:{
+... $and:[
+...
+... {topic_date:{$regex:"2020-10"}},
+... {"task_due_date":{$regex:"2020-10"}}]
+... }}]);
+
+//Output
+
+[
+  {
+    topic: 'HTML/CSS',
+    topic_date: '2020-10-10',
+    task_name: 'task-1/HTML/CSS',
+    task_due_date: '2020-10-15'
+  },
+  {
+    topic: 'JavaScript',
+    topic_date: '2020-10-11',
+    task_name: 'task-2/JavaScript',
+    task_due_date: '2020-10-15'
+  },
+  {
+    topic: 'React JS',
+    topic_date: '2020-10-17',
+    task_name: 'task_name-3/React_js',
+    task_due_date: '2020-10-20'
+  },
+  {
+    topic: 'MySql',
+    topic_date: '2020-10-18',
+    task_name: 'task-4/MySql',
+    task_due_date: '2020-10-25'
+  },
+  {
+    topic: 'MongoDB',
+    topic_date: '2020-10-24',
+    task_name: 'task-5/MongoDb',
+    task_due_date: '2020-10-30'
+  }
+]
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+2. Find all the company drives which appeared between 15 oct-2020 and 31-oct-2020
+
+Zen_Class> db.Company_Drives.aggregate([
+... {$match:{
+... date:{
+... $gte:"2020-10-15", $lte:"2020-10-31"}}}]);
+
+//Output
+
+
+[
+  {
+    _id: ObjectId('66bb15023f658776bfda50a0'),
+    user_id: [ 1, 3, 6, 7, 8, 11 ],
+    date: '2020-10-20',
+    company_name: 'Zoho'
+  },
+  {
+    _id: ObjectId('66bb15023f658776bfda50a1'),
+    user_id: [ 1, 5, 15 ],
+    date: '2020-10-15',
+    company_name: 'Flipcart'
+  },
+  {
+    _id: ObjectId('66bb15023f658776bfda50a2'),
+    user_id: [ 1, 4, 5, 8, 14 ],
+    date: '2020-10-27',
+    company_name: 'Aspire'
+  },
+  {
+    _id: ObjectId('66bb15023f658776bfda50a5'),
+    user_id: [ 1, 2, 5, 15 ],
+    date: '2020-10-20',
+    company_name: 'Twitter'
+  },
+  {
+    _id: ObjectId('66bb15023f658776bfda50a6'),
+    user_id: [ 1, 4, 7, 10, 13, 14 ],
+    date: '2020-10-25',
+    company_name: 'Rently'
+  },
+  {
+    _id: ObjectId('66bb15023f658776bfda50a7'),
+    user_id: [ 1 ],
+    date: '2020-10-27',
+    company_name: 'L&T'
+  }
+]
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+3. Find all the company drives and students who are appeared for the placement.
+
+Zen_Class> db.Company_Drives.aggregate([
+...   {
+...     $lookup: {
+...       from: "Users",
+...       localField: "user_id",
+...       foreignField: "user_id",
+...       as: "user_info"
+...     }
+...   },
+...   {
+...     $unwind: "$user_info"
+...   },
+...   {
+...     $project: {
+...       _id: 0,
+...       company_name: 1,
+...       student_name: "$user_info.name"
+...     }
+...   },
+...   {
+...     $group: {
+...       _id: "$company_name",
+...       students: { $push: "$student_name" }
+...     }
+...   }
+... ]);
+
+//Output
+[
+  {
+    _id: 'Aspire',
+    students: [ 'Kritti', 'Thilga', 'Sam', 'Bhuvi', 'Raam' ]
+  },
+  {
+    _id: 'Sopra Seria',
+    students: [
+      'Kritti', 'Mani',
+      'Thilga', 'Sam',
+      'Kani',   'Yuga',
+      'Raam',   'Sarvesh'
+    ]
+  },
+  { _id: 'Accenture', students: [ 'Kritti', 'Thilga', 'Sam' ] },
+  {
+    _id: 'TCS',
+    students: [
+      'Kritti',  'Thilga',
+      'Sam',     'Senthil',
+      'Mahes',   'Bhuvi',
+      'Thanvi',  'Kani',
+      'Sarvesh'
+    ]
+  },
+  { _id: 'Flipcart', students: [ 'Kritti', 'Sam', 'Sarvesh' ] },
+  {
+    _id: 'Zoho',
+    students: [ 'Kritti', 'Satwi', 'Senthil', 'Mahes', 'Bhuvi', 'Thanvi' ]
+  },
+  {
+    _id: 'Rently',
+    students: [ 'Kritti', 'Thilga', 'Mahes', 'Rithu', 'Yuga', 'Raam' ]
+  },
+  {
+    _id: 'CTS',
+    students: [ 'Kritti', 'Thilga', 'Sam', 'Senthil', 'Bhuvi', 'Kani' ]
+  },
+  { _id: 'L&T', students: [ 'Kritti' ] },
+  { _id: 'Twitter', students: [ 'Kritti', 'Mani', 'Sam', 'Sarvesh' ] }
+]
+Zen_Class>
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+4. Find the number of problems solved by the user in codekata
+
+Zen_Class> db.Codekata.aggregate([
+...   {
+...     $lookup: {
+...       from: "Users",
+...       localField: "user_id",
+...       foreignField: "user_id",
+...       as: "result"
+...     }
+...   },
+...   {
+...     $unwind: "$result"
+...   },
+...   {
+...     $project: {
+...       _id: 0,
+...       problems_solved: 1,
+...       user_name: "$result.name" 
+...     }
+...   }
+... ]);
+
+//Output
+[
+  { problems_solved: 20, user_name: 'Kritti' },
+  { problems_solved: 10, user_name: 'Mani' },
+  { problems_solved: 25, user_name: 'Satwi' },
+  { problems_solved: 35, user_name: 'Thilga' },
+  { problems_solved: 15, user_name: 'Sam' },
+  { problems_solved: 10, user_name: 'Senthil' },
+  { problems_solved: 40, user_name: 'Mahes' },
+  { problems_solved: 35, user_name: 'Bhuvi' },
+  { problems_solved: 20, user_name: 'Sarva' },
+  { problems_solved: 10, user_name: 'Rithu' },
+  { problems_solved: 15, user_name: 'Thanvi' },
+  { problems_solved: 30, user_name: 'Kani' },
+  { problems_solved: 45, user_name: 'Yuga' },
+  { problems_solved: 20, user_name: 'Raam' },
+  { problems_solved: 15, user_name: 'Sarvesh' }
+]
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+5. Find all the mentors with who has the mentee's count more than 5
+
+Zen_Class> db.Users.aggregate([
+...   {
+...     $group: {
+...       _id: "$mentor_id",
+...       mentor_count: { $sum: 1 }
+...     }
+...   },
+...   {
+...     $match: {
+...       mentor_count: { $gt: 5 }
+...     }
+...   },
+...   {
+...     $lookup: {
+...       from: "Mentor",
+...       localField: "_id",
+...       foreignField: "mentor_id",
+...       as: "mentor_details"
+...     }
+...   },
+...   {
+...     $unwind: "$mentor_details"
+...   },
+...   {
+...     $project: {
+...       _id: 0,
+...       mentor_id: "$_id",
+...       mentor_count: 1,
+...       mentor_name: "$mentor_details.mentor_name",
+...       mentor_email: "$mentor_details.mentor_email"
+...     }
+...   }
+... ]);
+
+\\OUTPUT
+
+[
+  {
+    mentor_count: 8,
+    mentor_id: 1,
+    mentor_name: 'Sai Mohan',
+    mentor_email: 'saimohan@gmail.com'
+  }
+]
+Zen_Class>
+
+*_*_*_*_*_**_*_*_*__*_*_*_**_*__*_*_*__*_*_*_*_*_*_*_*_*_*_**__*_**__**__*_**__*
+
+6.Find the number of users who are absent and task is not submitted  between 15 oct-2020 and 31-oct-2020
+
+db.Attendance.aggregate([
+  {
+        $unwind: "$Attendance"
+  },
+  {
+        $lookup: {
+      from: "Tasks",
+      localField: "Attendance.topic_id",
+      foreignField: "task_id",
+      as: "task_data"
+    }
+  },
+  {
+       $unwind: "$task_data"
+  },
+  {
+       $lookup: {
+      from: "Users",
+      localField: "user_id",
+      foreignField: "user_id",
+      as: "user_data"
+    }
+  },
+  {
+    
+    $unwind: "$user_data"
+  },
+  {
+   
+    $match: {
+      "Attendance.attended": false,
+      "task_data.completion_status.not_submitted_users": {
+        $in: ["$user_id"]
+      }
+    }
+  },
+  {
+  
+    $group: {
+      _id: "$user_id"
+    }
+  },
+  {    $count: "number_of_users"
+  }
+])
+
+
+
+
